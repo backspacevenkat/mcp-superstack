@@ -1,0 +1,83 @@
+####################################
+# Codex CLI MCP Configuration
+#
+# Copy this file to ~/.codex/config.toml
+# Replace YOUR_* placeholders with your actual values
+####################################
+
+####################################
+# Projects trust
+####################################
+[projects."/Users/YOUR_USERNAME/Documents"]
+trust_level = "trusted"
+
+####################################
+# MCP servers
+####################################
+
+# Exa - Semantic web search
+[mcp_servers.exa]
+command = "mcp-proxy"
+args = ["https://mcp.exa.ai/mcp?exaApiKey=YOUR_EXA_API_KEY", "--transport", "streamablehttp"]
+env = {}
+
+# Memory - Knowledge graph
+[mcp_servers.memory]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-memory"]
+env = {}
+
+# Supabase - PostgreSQL database
+[mcp_servers.supabase]
+command = "npx"
+args = ["-y", "@supabase/mcp-server-supabase@latest", "--access-token", "YOUR_SUPABASE_ACCESS_TOKEN", "--project-ref", "YOUR_SUPABASE_PROJECT_REF"]
+env = { SUPABASE_URL = "https://YOUR_PROJECT.supabase.co", SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY", SUPABASE_SERVICE_ROLE_KEY = "YOUR_SUPABASE_SERVICE_ROLE_KEY" }
+
+# Sequential Thinking - Step-by-step reasoning
+[mcp_servers.seq_thinking]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+env = {}
+
+# Filesystem - File operations (change path to your allowed directory)
+[mcp_servers.filesystem]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-filesystem", "/Users/YOUR_USERNAME/allowed-directory"]
+env = {}
+
+# GitHub - Repository, issues, PRs
+[mcp_servers.github]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-github"]
+env = { GITHUB_PERSONAL_ACCESS_TOKEN = "YOUR_GITHUB_TOKEN" }
+
+# Vercel - Deployment management (uses mcp-proxy with auth header)
+[mcp_servers.vercel]
+command = "mcp-proxy"
+args = ["https://mcp.vercel.com/YOUR_TEAM/YOUR_PROJECT", "--transport", "streamablehttp", "-H", "Authorization", "Bearer YOUR_VERCEL_TOKEN"]
+env = {}
+
+# Polydev - Multi-model AI (uses local wrapper for fast handshake)
+# IMPORTANT: Copy polydev-stdio-wrapper.js to ~/.codex/
+[mcp_servers.polydev]
+command = "/opt/homebrew/bin/node"
+args = ["/Users/YOUR_USERNAME/.codex/polydev-stdio-wrapper.js"]
+env = { POLYDEV_USER_TOKEN = "YOUR_POLYDEV_TOKEN" }
+
+# Context7 - Library documentation
+[mcp_servers.context7]
+command = "npx"
+args = ["-y", "@upstash/context7-mcp@latest"]
+env = {}
+
+# DeepWiki - Wikipedia search
+[mcp_servers.deepwiki]
+command = "npx"
+args = ["-y", "mcp-deepwiki@latest"]
+env = {}
+
+# Upstash - Redis cache
+[mcp_servers.upstash]
+command = "npx"
+args = ["-y", "@upstash/mcp-server", "run", "YOUR_UPSTASH_EMAIL", "YOUR_UPSTASH_API_KEY"]
+env = {}

@@ -1,0 +1,59 @@
+{
+  "name": "mcp-superstack",
+  "version": "1.0.0",
+  "description": "Unified MCP (Model Context Protocol) execution layer for AI coding assistants - works with Claude Code, Codex CLI, Cline, and more",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./servers/*": {
+      "types": "./dist/servers/*/index.d.ts",
+      "import": "./dist/servers/*/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "setup": "node scripts/setup.js",
+    "setup:codex": "node scripts/setup-codex.js",
+    "setup:claude": "node scripts/setup-claude.js",
+    "test": "node scripts/test-all.js",
+    "test:server": "node scripts/test-server.js"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "claude",
+    "claude-code",
+    "codex",
+    "ai-assistant",
+    "llm",
+    "anthropic",
+    "openai"
+  ],
+  "author": "Polydev",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/polydev-ai/mcp-superstack.git"
+  },
+  "homepage": "https://github.com/polydev-ai/mcp-superstack#readme",
+  "bugs": {
+    "url": "https://github.com/polydev-ai/mcp-superstack/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0"
+  }
+}
