@@ -126,12 +126,23 @@ Codex CLI (OpenAI's CLI) has strict timeout constraints that require special han
 ### The Challenge
 
 Codex CLI has two timeout issues:
-1. **Initialization timeout (~5s)**: Server must respond to `initialize` and `tools/list` within ~5 seconds
-2. **Tool call timeout (~10-15s)**: Individual tool calls must complete quickly
+1. **Initialization timeout (default 10s)**: Server must respond to `initialize` and `tools/list` quickly
+2. **Tool call timeout (default 60s)**: Individual tool calls must complete within this window
 
-### The Solution: Local Stdio Wrapper
+### The Solution: Configurable Timeouts + Local Wrapper
 
-We solve the initialization timeout with a local wrapper that:
+Codex CLI now supports **configurable timeouts** (v0.31.0+):
+
+```toml
+[mcp_servers.polydev]
+command = "/opt/homebrew/bin/node"
+args = ["/Users/YOUR_USERNAME/.codex/polydev-stdio-wrapper.js"]
+env = { POLYDEV_USER_TOKEN = "your_token" }
+startup_timeout_sec = 30   # Increase from default 10s
+tool_timeout_sec = 120     # Increase from default 60s
+```
+
+We also use a **local wrapper** that:
 1. Returns `initialize` and `tools/list` **instantly** (no network call)
 2. Forwards actual `tools/call` requests to the remote server
 
@@ -191,20 +202,27 @@ args = ["https://mcp.vercel.com/TEAM/PROJECT", "--transport", "streamablehttp", 
 env = {}
 ```
 
-### Polydev Limitations in Codex CLI
+### Polydev Performance in Codex CLI
 
-⚠️ **Important**: Even with the wrapper fix, Polydev has limitations in Codex:
+With the new **configurable timeouts** (v0.31.0+), Polydev works much better:
 
-| Prompt Type | Typical Time | Codex Status |
-|-------------|--------------|--------------|
+| Prompt Type | Typical Time | With `tool_timeout_sec = 120` |
+|-------------|--------------|-------------------------------|
 | Simple ("What is 2+2?") | ~2-3 seconds | ✅ Works |
-| Medium (short question) | ~5-10 seconds | ✅ Usually works |
-| Complex (architecture) | ~15-30 seconds | ❌ May timeout |
+| Medium (short question) | ~5-10 seconds | ✅ Works |
+| Complex (architecture) | ~15-30 seconds | ✅ Works |
+| Very complex (detailed) | ~30-60 seconds | ✅ Works |
 
-**Recommendations for Codex CLI:**
-1. **Use shorter, focused prompts** - Break complex questions into smaller parts
-2. **Use Claude Code for complex queries** - It has longer timeouts
-3. **Other MCPs work great** - Exa, GitHub, Memory, etc. are fast and reliable
+**Key timeout settings:**
+```toml
+startup_timeout_sec = 30   # For initialization (default: 10s)
+tool_timeout_sec = 120     # For tool calls (default: 60s)
+```
+
+**If you're on an older Codex version** (< 0.31.0):
+1. Upgrade Codex: `npm install -g @openai/codex@latest`
+2. Or use shorter, focused prompts
+3. Or use Claude Code for complex queries
 
 ### How the Wrapper Works
 
@@ -528,12 +546,18 @@ MCP supports two transport mechanisms:
 
 #### "Transport closed" in Codex CLI
 
-**Cause**: Codex CLI has short timeouts (~5s init, ~10-15s tool call)
+**Cause**: Codex CLI has default timeouts (10s init, 60s tool call)
 
 **Solutions**:
-1. For Polydev: Use the local wrapper (`polydev-stdio-wrapper.js`)
-2. For complex prompts: Use Claude Code instead (longer timeouts)
-3. For other HTTP servers: Use `mcp-proxy` with proper transport flags
+1. **Increase timeouts** (Codex v0.31.0+):
+   ```toml
+   [mcp_servers.polydev]
+   startup_timeout_sec = 30
+   tool_timeout_sec = 120
+   ```
+2. For Polydev: Use the local wrapper (`polydev-stdio-wrapper.js`)
+3. For HTTP servers: Use `mcp-proxy` with proper transport flags
+4. Upgrade Codex: `npm install -g @openai/codex@latest`
 
 #### "POLYDEV_USER_TOKEN environment variable is required"
 

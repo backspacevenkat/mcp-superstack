@@ -59,10 +59,13 @@ env = {}
 
 # Polydev - Multi-model AI (uses local wrapper for fast handshake)
 # IMPORTANT: Copy polydev-stdio-wrapper.js to ~/.codex/
+# Timeout settings: startup_timeout_sec for init, tool_timeout_sec for calls
 [mcp_servers.polydev]
 command = "/opt/homebrew/bin/node"
 args = ["/Users/YOUR_USERNAME/.codex/polydev-stdio-wrapper.js"]
 env = { POLYDEV_USER_TOKEN = "YOUR_POLYDEV_TOKEN" }
+startup_timeout_sec = 30
+tool_timeout_sec = 120
 
 # Context7 - Library documentation
 [mcp_servers.context7]
