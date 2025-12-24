@@ -130,15 +130,16 @@ Codex CLI has several timeout and transport issues:
 2. **Tool call timeout (default 60s)**: Individual tool calls must complete within this window
 3. **"Transport closed" errors**: If the wrapper blocks during a long tool call, keep-alive pings can't be processed
 
-### The Solution: Wrapper v2 + Configurable Timeouts
+### The Solution: Wrapper v2.1 + Configurable Timeouts
 
-We use a **local wrapper v2** that:
+We use a **local wrapper v2.1** that:
 1. Returns `initialize` and `tools/list` **instantly** (no network call)
 2. Handles requests **CONCURRENTLY** (critical for keep-alive pings during long tool calls)
 3. Properly handles MCP notifications (no response for `notifications/initialized`)
-4. Supports ping/pong keep-alive protocol
-5. Has a 3-minute fetch timeout with AbortController
-6. Includes debug mode for troubleshooting
+4. Uses correct MCP protocol version `2025-06-18` (required by Codex CLI v0.77.0+)
+5. Supports ping/pong keep-alive protocol
+6. Has a 3-minute fetch timeout with AbortController
+7. Includes debug mode for troubleshooting
 
 Codex CLI also supports **configurable timeouts** (v0.31.0+):
 
@@ -146,9 +147,11 @@ Codex CLI also supports **configurable timeouts** (v0.31.0+):
 [mcp_servers.polydev]
 command = "/opt/homebrew/bin/node"
 args = ["/Users/YOUR_USERNAME/.codex/polydev-stdio-wrapper.js"]
-env = { POLYDEV_USER_TOKEN = "your_token", POLYDEV_DEBUG = "0" }
-startup_timeout_sec = 30   # Increase from default 10s
-tool_timeout_sec = 180     # Increase from default 60s (3 minutes for complex queries)
+env = { POLYDEV_USER_TOKEN = "pd_your_token_here", POLYDEV_DEBUG = "0" }
+
+[mcp_servers.polydev.timeouts]
+tool_timeout = 180    # 3 minutes for complex queries (default: 60s)
+session_timeout = 600 # 10 minutes session lifetime
 ```
 
 ### Setup Instructions
@@ -176,13 +179,17 @@ chmod +x ~/.codex/polydev-stdio-wrapper.js
 2. **Add to `~/.codex/config.toml`:**
 
 ```toml
-# Polydev - uses local wrapper v2 for fast initialization + concurrent request handling
+# Polydev - uses local wrapper v2.1 for fast initialization + concurrent request handling
+# Find your node path: which node
+# Find wrapper path: ls ~/.codex/polydev-stdio-wrapper.js
 [mcp_servers.polydev]
-command = "/opt/homebrew/bin/node"  # or /usr/local/bin/node on Intel Mac
+command = "/opt/homebrew/bin/node"  # or: /Users/YOU/.nvm/versions/node/v22.20.0/bin/node
 args = ["/Users/YOUR_USERNAME/.codex/polydev-stdio-wrapper.js"]
-env = { POLYDEV_USER_TOKEN = "your_token_here", POLYDEV_DEBUG = "0" }
-startup_timeout_sec = 30
-tool_timeout_sec = 180
+env = { POLYDEV_USER_TOKEN = "pd_your_token_here", POLYDEV_DEBUG = "0" }
+
+[mcp_servers.polydev.timeouts]
+tool_timeout = 180
+session_timeout = 600
 
 # Exa - uses mcp-proxy for HTTP transport
 [mcp_servers.exa]
@@ -211,7 +218,7 @@ env = {}
 
 ### Polydev Performance in Codex CLI
 
-With **wrapper v2** + **configurable timeouts** (Codex v0.31.0+), Polydev works reliably:
+With **wrapper v2.1** + **configurable timeouts** (Codex v0.31.0+), Polydev works reliably:
 
 | Prompt Type | Typical Time | Status |
 |-------------|--------------|--------|
@@ -222,25 +229,26 @@ With **wrapper v2** + **configurable timeouts** (Codex v0.31.0+), Polydev works 
 
 **Recommended timeout settings:**
 ```toml
-startup_timeout_sec = 30   # For initialization (default: 10s)
-tool_timeout_sec = 180     # For tool calls (default: 60s) - 3 minutes for complex queries
+[mcp_servers.polydev.timeouts]
+tool_timeout = 180    # 3 minutes for complex queries
+session_timeout = 600 # 10 minutes session lifetime
 ```
 
 **Debug mode** - Enable to see what's happening:
 ```toml
-env = { POLYDEV_USER_TOKEN = "your_token", POLYDEV_DEBUG = "1" }
+env = { POLYDEV_USER_TOKEN = "pd_your_token", POLYDEV_DEBUG = "1" }
 ```
 
 **If you still see "Transport closed" errors:**
-1. Make sure you're using wrapper **v2** (check for "CONCURRENTLY" in the file header)
+1. Make sure you're using wrapper **v2.1** (check for `protocolVersion: '2025-06-18'` in the file)
 2. Upgrade Codex: `npm install -g @openai/codex@latest`
 3. Verify config is loaded: `codex mcp get polydev`
 4. Enable debug mode to see detailed logs
 
-### How the Wrapper v2 Works
+### How the Wrapper v2.1 Works
 
 ```javascript
-// polydev-stdio-wrapper.js v2 - Key concepts
+// polydev-stdio-wrapper.js v2.1 - Key concepts
 
 // 1. Local tool definitions for INSTANT response
 const TOOLS = [{ name: 'get_perspectives', description: '...' }];
@@ -249,14 +257,14 @@ const TOOLS = [{ name: 'get_perspectives', description: '...' }];
 async function handle(request) {
   const { method, id } = request;
 
-  // Return initialize INSTANTLY (no network)
+  // Return initialize INSTANTLY with correct protocol version
   if (method === 'initialize') {
-    return { jsonrpc: '2.0', id, result: { protocolVersion: '2024-11-05', ... } };
+    return { jsonrpc: '2.0', id, result: { protocolVersion: '2025-06-18', ... } };
   }
 
-  // Handle notifications (NO response needed)
+  // Handle notifications (NO response needed) - CRITICAL for Codex CLI
   if (method === 'notifications/initialized') {
-    return null; // Critical: don't send response for notifications
+    return null; // Must not send response for notifications
   }
 
   // Keep-alive ping/pong
@@ -578,32 +586,39 @@ MCP supports two transport mechanisms:
 #### "Transport closed" in Codex CLI
 
 **Cause**: This error occurs when:
-1. The wrapper processes requests **sequentially** (blocking on each request)
-2. During a long tool call (20+ seconds), keep-alive pings can't be processed
-3. Codex CLI thinks the transport is dead and closes the connection
+1. The wrapper uses wrong MCP protocol version (must be `2025-06-18` for Codex v0.77.0+)
+2. The wrapper responds to notifications (like `notifications/initialized`) which have no `id`
+3. The wrapper processes requests **sequentially** (blocking on each request)
+4. During a long tool call (20+ seconds), keep-alive pings can't be processed
+5. Codex CLI thinks the transport is dead and closes the connection
 
 **Solutions**:
-1. **Use wrapper v2** which handles requests **concurrently**:
+1. **Use wrapper v2.1** which uses correct protocol version and handles requests **concurrently**:
    ```bash
    cp templates/codex-cli/polydev-stdio-wrapper.js ~/.codex/
    ```
 
-2. **Increase timeouts** (Codex v0.31.0+):
+2. **Use correct timeout format** (Codex v0.31.0+):
    ```toml
    [mcp_servers.polydev]
-   startup_timeout_sec = 30
-   tool_timeout_sec = 180  # 3 minutes for complex queries
+   command = "/path/to/node"
+   args = ["/path/to/polydev-stdio-wrapper.js"]
+   env = { POLYDEV_USER_TOKEN = "pd_your_token", POLYDEV_DEBUG = "0" }
+
+   [mcp_servers.polydev.timeouts]
+   tool_timeout = 180    # 3 minutes for complex queries
+   session_timeout = 600 # 10 minutes session lifetime
    ```
 
 3. **Enable debug mode** to see what's happening:
    ```toml
-   env = { POLYDEV_USER_TOKEN = "your_token", POLYDEV_DEBUG = "1" }
+   env = { POLYDEV_USER_TOKEN = "pd_your_token", POLYDEV_DEBUG = "1" }
    ```
 
 4. **Verify your config is loaded**:
    ```bash
    codex mcp get polydev
-   # Should show: tool_timeout_sec: 180
+   # Should show: tool_timeout: 180
    ```
 
 5. **Upgrade Codex**: `npm install -g @openai/codex@latest`
@@ -634,13 +649,13 @@ args = ["https://mcp.vercel.com/TEAM/PROJECT", "--transport", "streamablehttp", 
 **Debugging steps**:
 ```bash
 # Test stdio server manually
-echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}' | npx -y @modelcontextprotocol/server-github
+echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}' | npx -y @modelcontextprotocol/server-github
 
 # Test HTTP server
 curl -X POST https://www.polydev.ai/api/mcp \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_TOKEN" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}'
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}'
 ```
 
 ### Testing Individual Servers
@@ -650,13 +665,14 @@ curl -X POST https://www.polydev.ai/api/mcp \
 npm test
 
 # Test Polydev wrapper manually (without debug)
-export POLYDEV_USER_TOKEN=your_token
+export POLYDEV_USER_TOKEN=pd_your_token
 echo '{"jsonrpc":"2.0","method":"initialize","id":1}
+{"jsonrpc":"2.0","method":"notifications/initialized"}
 {"jsonrpc":"2.0","method":"tools/list","id":2}
 {"jsonrpc":"2.0","method":"tools/call","id":3,"params":{"name":"get_perspectives","arguments":{"prompt":"What is 2+2?"}}}' | node ~/.codex/polydev-stdio-wrapper.js
 
 # Test with debug mode enabled (see detailed logs)
-export POLYDEV_USER_TOKEN=your_token
+export POLYDEV_USER_TOKEN=pd_your_token
 export POLYDEV_DEBUG=1
 echo '{"jsonrpc":"2.0","method":"initialize","id":1}
 {"jsonrpc":"2.0","method":"notifications/initialized"}
@@ -665,7 +681,7 @@ echo '{"jsonrpc":"2.0","method":"initialize","id":1}
 
 # Verify Codex reads your config
 codex mcp get polydev
-# Should show: tool_timeout_sec: 180
+# Should show: tool_timeout: 180
 ```
 
 ---

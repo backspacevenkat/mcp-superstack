@@ -1,21 +1,24 @@
 #!/usr/bin/env node
 /**
- * Polydev Stdio Wrapper v2 for Codex CLI
+ * Polydev Stdio Wrapper v2.1 for Codex CLI
  *
  * This wrapper solves Codex CLI's MCP timeout issues by:
  * 1. Returning tools/list INSTANTLY (no network call)
  * 2. Handling requests CONCURRENTLY (allows keep-alive pings during long tool calls)
- * 3. Forwarding actual tool calls to the remote Polydev API
+ * 3. Properly handling MCP notifications (no response for notifications)
+ * 4. Forwarding actual tool calls to the remote Polydev API
  *
  * Copy this file to ~/.codex/polydev-stdio-wrapper.js
  *
  * Usage in ~/.codex/config.toml:
  *   [mcp_servers.polydev]
- *   command = "/opt/homebrew/bin/node"  # or /usr/bin/node on Linux
+ *   command = "/opt/homebrew/bin/node"  # or: /Users/YOU/.nvm/versions/node/v22.20.0/bin/node
  *   args = ["/Users/YOUR_USERNAME/.codex/polydev-stdio-wrapper.js"]
- *   env = { POLYDEV_USER_TOKEN = "your_token_here", POLYDEV_DEBUG = "0" }
- *   startup_timeout_sec = 30
- *   tool_timeout_sec = 180
+ *   env = { POLYDEV_USER_TOKEN = "pd_your_token_here", POLYDEV_DEBUG = "0" }
+ *
+ *   [mcp_servers.polydev.timeouts]
+ *   tool_timeout = 180
+ *   session_timeout = 600
  *
  * Set POLYDEV_DEBUG = "1" to enable debug logging to stderr.
  */
@@ -135,15 +138,15 @@ async function handle(request) {
   const { method, id, params } = request || {};
   log('Handling:', method, 'id:', id);
 
-  // Initialize
+  // Initialize - CRITICAL: Protocol version must match what Codex expects
   if (method === 'initialize') {
     return {
       jsonrpc: '2.0',
       id,
       result: {
-        protocolVersion: '2024-11-05',
+        protocolVersion: '2025-06-18',  // Codex CLI v0.77.0+ requires this version
         capabilities: { tools: {} },
-        serverInfo: { name: 'polydev-stdio', version: '2.0.0' }
+        serverInfo: { name: 'polydev-stdio', version: '2.1.0' }
       }
     };
   }
