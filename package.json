@@ -1,6 +1,6 @@
 {
   "name": "mcp-superstack",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Unified MCP (Model Context Protocol) execution layer for AI coding assistants - works with Claude Code, Codex CLI, Cline, and more",
   "type": "module",
   "main": "dist/index.js",
@@ -14,6 +14,10 @@
       "types": "./dist/servers/*/index.d.ts",
       "import": "./dist/servers/*/index.js"
     }
+  },
+  "bin": {
+    "mcp-superstack-setup": "./scripts/setup.js",
+    "mcp-superstack-setup-codex": "./scripts/setup-codex.js"
   },
   "scripts": {
     "build": "tsc",

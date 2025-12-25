@@ -30,6 +30,21 @@
 
 ## Quick Start
 
+### Option 1: Install from npm (Recommended)
+
+```bash
+# Install globally
+npm install -g mcp-superstack
+
+# Run interactive setup wizard
+npx mcp-superstack-setup
+
+# For Codex CLI specifically
+npx mcp-superstack-setup-codex
+```
+
+### Option 2: Clone and Build
+
 ```bash
 # Clone the repository
 git clone https://github.com/backspacevenkat/mcp-superstack.git
@@ -47,6 +62,397 @@ npm run build
 # Test connectivity to all servers
 npm test
 ```
+
+---
+
+## Post-Installation Setup
+
+After installing mcp-superstack, you need to:
+1. **Set up environment variables** (API keys for each service)
+2. **Configure your IDE** (Claude Code, Codex CLI, Cline, etc.)
+3. **Copy CLAUDE.md templates** (for auto-invocation behavior)
+
+### Step 1: Environment Variables
+
+Create a `.env` file or export these environment variables:
+
+```bash
+# ============================================
+# ESSENTIAL (Required for core functionality)
+# ============================================
+
+# Polydev - Multi-model AI perspectives
+# Get from: https://www.polydev.ai/dashboard/mcp-tokens
+export POLYDEV_USER_TOKEN="pd_your_token_here"
+
+# Exa - Semantic web search
+# Get from: https://exa.ai/
+export EXA_API_KEY="your_exa_key"
+
+# GitHub - Repository management
+# Get from: https://github.com/settings/tokens
+export GITHUB_TOKEN="ghp_your_token"
+
+# ============================================
+# DATABASE (Supabase - PostgreSQL)
+# ============================================
+# Get from: https://supabase.com/dashboard/project/_/settings/api
+
+export SUPABASE_ACCESS_TOKEN="sbp_your_token"
+export SUPABASE_PROJECT_REF="your_project_ref"
+export SUPABASE_URL="https://your_project.supabase.co"
+export SUPABASE_ANON_KEY="your_anon_key"
+export SUPABASE_SERVICE_ROLE_KEY="your_service_role_key"
+
+# ============================================
+# INFRASTRUCTURE (Optional)
+# ============================================
+
+# Vercel - Deployment
+# Get from: https://vercel.com/account/tokens
+export VERCEL_TOKEN="your_vercel_token"
+export VERCEL_TEAM="your_team_name"
+export VERCEL_PROJECT="your_project_name"
+
+# Stripe - Payments
+# Get from: https://dashboard.stripe.com/apikeys
+export STRIPE_API_KEY="sk_your_stripe_key"
+
+# Resend - Email
+# Get from: https://resend.com/api-keys
+export RESEND_API_KEY="re_your_resend_key"
+
+# ============================================
+# CACHE (Upstash Redis)
+# ============================================
+# Get from: https://console.upstash.com/
+
+export UPSTASH_EMAIL="your_email"
+export UPSTASH_API_KEY="your_upstash_key"
+
+# ============================================
+# ADDITIONAL AI (Optional)
+# ============================================
+
+# Perplexity - AI-powered search
+export PERPLEXITY_API_KEY="your_perplexity_key"
+
+# ============================================
+# FILESYSTEM ACCESS
+# ============================================
+export ALLOWED_DIRECTORY="/Users/yourname/Documents"
+```
+
+### Step 2: IDE Configuration
+
+Choose your IDE below for specific setup instructions.
+
+---
+
+## IDE Setup: Claude Code
+
+### Quick Setup (Recommended)
+
+```bash
+# Run the setup script
+npm run setup
+# or if installed globally:
+npx mcp-superstack-setup
+```
+
+This will:
+1. Create a `.env` file with your API keys
+2. Copy `CLAUDE.md` to `~/.claude/CLAUDE.md` for auto-invocation
+
+### Manual Setup
+
+#### 2a. Add MCP Servers to Claude Code
+
+```bash
+# Polydev - Multi-model AI perspectives
+claude mcp add polydev -- npx -y @anthropic/mcp-proxy https://www.polydev.ai/api/mcp --header "Authorization: Bearer $POLYDEV_USER_TOKEN"
+
+# Exa - Semantic web search
+claude mcp add exa -- npx -y @anthropic/mcp-proxy "https://mcp.exa.ai/mcp?exaApiKey=$EXA_API_KEY"
+
+# GitHub
+claude mcp add github -e GITHUB_PERSONAL_ACCESS_TOKEN=$GITHUB_TOKEN -- npx -y @modelcontextprotocol/server-github
+
+# Supabase
+claude mcp add supabase -- npx -y @supabase/mcp-server-supabase@latest --access-token $SUPABASE_ACCESS_TOKEN --project-ref $SUPABASE_PROJECT_REF
+
+# Memory (knowledge graph)
+claude mcp add memory -- npx -y @modelcontextprotocol/server-memory
+
+# Sequential Thinking
+claude mcp add seq-thinking -- npx -y @modelcontextprotocol/server-sequential-thinking
+
+# Context7 (library docs)
+claude mcp add context7 -- npx -y @upstash/context7-mcp@latest
+
+# Filesystem
+claude mcp add filesystem -- npx -y @modelcontextprotocol/server-filesystem $ALLOWED_DIRECTORY
+```
+
+#### 2b. Copy CLAUDE.md for Auto-Invocation
+
+```bash
+# Global (applies to all projects)
+mkdir -p ~/.claude
+cp node_modules/mcp-superstack/templates/claude-code/CLAUDE.global.md ~/.claude/CLAUDE.md
+
+# Per-project (more detailed instructions)
+mkdir -p .claude
+cp node_modules/mcp-superstack/templates/claude-code/CLAUDE.project.md .claude/CLAUDE.md
+```
+
+---
+
+## IDE Setup: Codex CLI (OpenAI)
+
+### Quick Setup (Recommended)
+
+```bash
+# Run the Codex setup script
+npm run setup:codex
+# or if installed globally:
+npx mcp-superstack-setup-codex
+```
+
+This will:
+1. Create `~/.codex/config.toml` with all MCP servers
+2. Install `polydev-stdio-wrapper.js` to `~/.codex/`
+3. Configure authentication for all services
+
+### Manual Setup
+
+#### 2a. Install polydev-ai globally
+
+```bash
+npm install -g polydev-ai
+```
+
+#### 2b. Find your paths
+
+```bash
+# Find your node path
+which node
+# Example: /Users/you/.nvm/versions/node/v22.20.0/bin/node
+
+# Find polydev package path
+npm root -g
+# Example: /Users/you/.nvm/versions/node/v22.20.0/lib/node_modules
+```
+
+#### 2c. Add to `~/.codex/config.toml`
+
+```toml
+####################################
+# Projects trust
+####################################
+[projects."/Users/YOUR_USERNAME/Documents"]
+trust_level = "trusted"
+
+####################################
+# MCP servers
+####################################
+
+# Polydev - Multi-model AI (uses polydev-ai npm package)
+[mcp_servers.polydev]
+command = "/path/to/node"
+args = ["/path/to/node_modules/polydev-ai/mcp/stdio-wrapper.js"]
+env = { POLYDEV_USER_TOKEN = "pd_your_token_here" }
+
+[mcp_servers.polydev.timeouts]
+tool_timeout = 180
+session_timeout = 600
+
+# Exa - Semantic web search
+[mcp_servers.exa]
+command = "mcp-proxy"
+args = ["https://mcp.exa.ai/mcp?exaApiKey=YOUR_EXA_KEY", "--transport", "streamablehttp"]
+env = {}
+
+# GitHub
+[mcp_servers.github]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-github"]
+env = { GITHUB_PERSONAL_ACCESS_TOKEN = "ghp_your_token" }
+
+# Memory (knowledge graph)
+[mcp_servers.memory]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-memory"]
+env = {}
+
+# Supabase
+[mcp_servers.supabase]
+command = "npx"
+args = ["-y", "@supabase/mcp-server-supabase@latest", "--access-token", "sbp_your_token", "--project-ref", "your_project_ref"]
+env = { SUPABASE_URL = "https://your_project.supabase.co", SUPABASE_ANON_KEY = "your_anon_key" }
+
+# Sequential Thinking
+[mcp_servers.seq_thinking]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+env = {}
+
+# Context7 (library docs)
+[mcp_servers.context7]
+command = "npx"
+args = ["-y", "@upstash/context7-mcp@latest"]
+env = {}
+
+# Vercel (with auth header)
+[mcp_servers.vercel]
+command = "mcp-proxy"
+args = ["https://mcp.vercel.com/YOUR_TEAM/YOUR_PROJECT", "--transport", "streamablehttp", "-H", "Authorization", "Bearer YOUR_TOKEN"]
+env = {}
+```
+
+---
+
+## IDE Setup: Cline (VS Code)
+
+Add to your VS Code settings or `~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`:
+
+```json
+{
+  "cline.mcpServers": {
+    "polydev": {
+      "command": "npx",
+      "args": ["--yes", "--package=polydev-ai@latest", "--", "polydev-stdio"],
+      "env": {
+        "POLYDEV_USER_TOKEN": "pd_your_token_here"
+      }
+    },
+    "exa": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-proxy", "https://mcp.exa.ai/mcp?exaApiKey=YOUR_EXA_KEY"],
+      "env": {}
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_your_token"
+      }
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
+      "env": {}
+    },
+    "supabase": {
+      "command": "npx",
+      "args": ["-y", "@supabase/mcp-server-supabase@latest", "--access-token", "sbp_your_token", "--project-ref", "your_project_ref"],
+      "env": {}
+    }
+  }
+}
+```
+
+---
+
+## IDE Setup: Cursor
+
+Add to `~/.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "polydev": {
+      "command": "npx",
+      "args": ["--yes", "--package=polydev-ai@latest", "--", "polydev-stdio"],
+      "env": {
+        "POLYDEV_USER_TOKEN": "pd_your_token_here"
+      }
+    },
+    "exa": {
+      "command": "npx",
+      "args": ["-y", "@anthropic/mcp-proxy", "https://mcp.exa.ai/mcp?exaApiKey=YOUR_EXA_KEY"],
+      "env": {}
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_your_token"
+      }
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"],
+      "env": {}
+    }
+  }
+}
+```
+
+---
+
+## IDE Setup: Windsurf
+
+Add to `~/.codeium/windsurf/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "polydev": {
+      "command": "npx",
+      "args": ["--yes", "--package=polydev-ai@latest", "--", "polydev-stdio"],
+      "env": {
+        "POLYDEV_USER_TOKEN": "pd_your_token_here"
+      }
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_your_token"
+      }
+    }
+  }
+}
+```
+
+---
+
+## IDE Setup: Continue
+
+Add to `~/.continue/config.json`:
+
+```json
+{
+  "mcpServers": {
+    "polydev": {
+      "command": "npx",
+      "args": ["--yes", "--package=polydev-ai@latest", "--", "polydev-stdio"],
+      "env": {
+        "POLYDEV_USER_TOKEN": "pd_your_token_here"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Environment Variables Quick Reference
+
+| Variable | Required | Where to Get |
+|----------|----------|--------------|
+| `POLYDEV_USER_TOKEN` | Yes | https://www.polydev.ai/dashboard/mcp-tokens |
+| `EXA_API_KEY` | Recommended | https://exa.ai/ |
+| `GITHUB_TOKEN` | Recommended | https://github.com/settings/tokens |
+| `SUPABASE_ACCESS_TOKEN` | Optional | https://supabase.com/dashboard |
+| `SUPABASE_PROJECT_REF` | Optional | Supabase project settings |
+| `SUPABASE_URL` | Optional | Supabase project settings |
+| `VERCEL_TOKEN` | Optional | https://vercel.com/account/tokens |
+| `STRIPE_API_KEY` | Optional | https://dashboard.stripe.com/apikeys |
+| `RESEND_API_KEY` | Optional | https://resend.com/api-keys |
+| `UPSTASH_EMAIL` | Optional | https://console.upstash.com/ |
+| `UPSTASH_API_KEY` | Optional | https://console.upstash.com/ |
 
 ---
 
