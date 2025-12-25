@@ -130,7 +130,35 @@ Codex CLI has several timeout and transport issues:
 2. **Tool call timeout (default 60s)**: Individual tool calls must complete within this window
 3. **"Transport closed" errors**: If the wrapper blocks during a long tool call, keep-alive pings can't be processed
 
-### The Solution: Wrapper v2.1 + Configurable Timeouts
+### Two Setup Options
+
+#### Option A: Use polydev-ai from npm (Recommended)
+
+The simplest approach - install polydev-ai globally:
+
+```bash
+# Install globally
+npm install -g polydev-ai
+
+# Find your paths
+which node        # Example: /Users/you/.nvm/versions/node/v22.20.0/bin/node
+npm root -g       # Example: /Users/you/.nvm/versions/node/v22.20.0/lib/node_modules
+```
+
+Add to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.polydev]
+command = "/path/to/node"
+args = ["/path/to/node_modules/polydev-ai/mcp/stdio-wrapper.js"]
+env = { POLYDEV_USER_TOKEN = "pd_your_token_here" }
+
+[mcp_servers.polydev.timeouts]
+tool_timeout = 180
+session_timeout = 600
+```
+
+#### Option B: Use Local Wrapper (More Control)
 
 We use a **local wrapper v2.1** that:
 1. Returns `initialize` and `tools/list` **instantly** (no network call)

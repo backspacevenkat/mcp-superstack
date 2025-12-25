@@ -1,6 +1,6 @@
 {
   "name": "mcp-superstack",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Unified MCP (Model Context Protocol) execution layer for AI coding assistants - works with Claude Code, Codex CLI, Cline, and more",
   "type": "module",
   "main": "dist/index.js",
@@ -39,15 +39,22 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/polydev-ai/mcp-superstack.git"
+    "url": "https://github.com/backspacevenkat/mcp-superstack.git"
   },
-  "homepage": "https://github.com/polydev-ai/mcp-superstack#readme",
+  "homepage": "https://github.com/backspacevenkat/mcp-superstack#readme",
   "bugs": {
-    "url": "https://github.com/polydev-ai/mcp-superstack/issues"
+    "url": "https://github.com/backspacevenkat/mcp-superstack/issues"
   },
   "engines": {
     "node": ">=18.0.0"
   },
+  "files": [
+    "dist",
+    "templates",
+    "scripts",
+    "README.md",
+    "LICENSE"
+  ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
     "dotenv": "^16.3.1"
